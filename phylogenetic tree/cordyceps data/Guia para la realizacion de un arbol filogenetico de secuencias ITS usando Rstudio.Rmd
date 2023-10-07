@@ -1,0 +1,124 @@
+---
+title: "Phylogenetic Analysis of Cordycpes using ITS sequences"
+author: "Paul Arturo Gamez Coronel"
+date: "2023-10-07"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+---
+
+# Introducción
+
+En este documento, documentaré el análisis de secuencias de Cordyceps utilizando R. El análisis incluye la instalación de paquetes, el procesamiento de secuencias y la construcción de un árbol filogenético.
+
+# Configuración y preparación
+
+```{r librarys, include=TRUE}
+setwd("C:/Users/Paulw/Desktop/Arbol filogenetico/cordyceps data")
+
+library(seqinr)
+library(adegenet)
+library(ape)
+library(ggtree)
+library(DECIPHER)
+library(viridis)
+library(ggplot2)
+```
+
+
+# Inicializar los primeros pasos
+en esta parte del codigo estableceremos un archivo para trabajar con la variable "seq_name" donde a partir de el y usando funciones
+de la libreria ape leeremos la secuencia de formato fasta y realizaremos un alineamiento de las mismas.
+
+```{r init, include=TRUE}
+
+seq_name <- file.choose()
+seqs <- readDNAStringSet("cordyceps.txt", format = "fasta")
+seqs <- OrientNucleotides(seqs)
+aligned <- AlignSeqs(seqs)
+
+```
+
+# Primera visualizacion
+Con esta funcion podremos observar en nuestro explorador una visualizacion basica de las secuencias donde podremos comparar las secuencias de ADN.
+
+```{r visual, include=TRUE}
+
+BrowseSeqs(aligned, colorPatterns = TRUE, highlight = 0)
+
+
+```
+
+# Guardar secuencia alineada
+Guardaremos la sencuencia con un nombre a eleccion propia
+
+```{r write, include=TRUE}
+
+writeXStringSet(aligned, file = "Cordyceps.fasta")
+
+```
+
+# Analisis de distancia
+esta seccion del codigo nos permitira leer a partir del archivo creado anteriormente, el distanciamiento en funcion al alineamiento, que compara la similitud en las secuencias
+
+```{r dist, include=TRUE}
+
+dna <- read.alignment("Cordyceps.fasta", format = "fasta")
+D <- dist.alignment(dna, matrix = "similarity")
+tre <- nj(D)
+tre <- ladderize(tre)
+
+
+```
+
+# Graficas de la similitud
+Aqui podemos observar una grafica de la matriz creada en el codigo anterior, cada region nos indica en funcion del color la similitud, mientras mas oscuro sea una casilla representa un mayor distanciamiento entre las secuencias comparadas, caso contrario al color blanco que nos dice que tiene un menor distanciamiento
+
+```{r sim, include=TRUE}
+
+plot(tre, cex = 0.6)
+title("Similitud en Cordyceps de region (ITS)")
+
+
+```
+
+# Dendograma
+los dendogramas nos permiten visualizar de una manera mas clara tanto el distanciamiento de las secuencias como su similitud
+
+```{r den, include=TRUE}
+
+h_cluster <- hclust(D, method = "complete", members = NULL)
+plot(h_cluster, cex = 0.6, main = "Dendrograma", xlab = "Distancia", ylab = "Similitud")
+
+
+```
+
+# Grafico usando GGTREE
+este codigo nos permite usar la libreria ggtree para generar un arbol filogenetico, a diferencia de las graficas con R base esta nos 
+permite visualizar de una manera mas personalizada nuestro arbol.
+
+```{r ggtree, include=TRUE}
+
+ggtree(tre) +
+  geom_tiplab(hjust = -0.3, size = 4, align = TRUE) +
+  xlim(0, 0.5) +
+  ggtitle("Árbol filogenético de Cordyceps de regiones ITS")
+
+
+```
+
+# Grafico del alineamiento
+Aqui podemos observar un grafico del alineamiento de la secuencia fasta donde podemos observar las bases nitrogenadas de las secuencias.
+
+```{r aling, include=TRUE}
+
+tre.new <- tre
+tre.new$tip.label <- aligned@ranges@NAMES
+
+msaplot(p = ggtree(tre.new), fasta = "Cordyceps.fasta", window = c(150, 175)) +
+  scale_fill_viridis_d(alpha = 0.8)
+
+
+```
